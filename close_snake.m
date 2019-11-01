@@ -1,7 +1,7 @@
 clear all;
 
-N = 600;
-alpha = 2;
+N = 500;
+alpha = 0.2;
 beta = 0.05;
 gamma = 0.2;
 w_line = 2.5;
@@ -10,7 +10,7 @@ w_term = 3.5;
 sigma = 0.5;
 
 % load image
-I = imread('potato.jpg');
+I = imread('circle.jpg');
 if (ndims(I) == 3)
     I = rgb2gray(I);
 end
@@ -65,6 +65,7 @@ function [x, y] = initialize_snake(I)
     distance_points = 1:number_of_points;
     final_distance_points = 1:0.05:number_of_points;
     closed_curve = spline(distance_points, knots, final_distance_points);
+    closed_curve(closed_curve < 1) = 1;
     closed_curve(closed_curve > max_len) = max_len;
     x_new = closed_curve(1,:);
     y_new = closed_curve(2,:);
@@ -80,14 +81,14 @@ function [E_external] = external_energy_calculation(I, w_line, w_edge, w_term)
     [gradient_x, gradient_y] = gradient(I);
     E_edge = -1 * (gradient_x.^2 + gradient_y.^2);
     
-    % sobel_x = [1 0 -1; 2 0 -2; 1 0 -1];
-    % sobel_y = [1 2 1; 0 0 0; -1 -2 -1];
+    %sobel_x = [1 0 -1; 2 0 -2; 1 0 -1];
+    %sobel_y = [1 2 1; 0 0 0; -1 -2 -1];
     
-    % c_x = conv2(I, sobel_x, 'same');
-    % c_xx = conv2(c_x, sobel_x, 'same');
-    % c_y = conv2(I, sobel_y, 'same');
-    % c_yy = conv2(c_y, sobel_y, 'same');
-    % c_xy = conv2(c_x, sobel_y, 'same');
+    %c_x = conv2(I, sobel_x, 'same');
+    %c_xx = conv2(c_x, sobel_x, 'same');
+    %c_y = conv2(I, sobel_y, 'same');
+    %c_yy = conv2(c_y, sobel_y, 'same');
+    %c_xy = conv2(c_x, sobel_y, 'same');
     c_x = imgaussfilt(I,[4, 1]);
     c_xx = imgaussfilt(c_x, [4, 1]);
     c_y = imgaussfilt(I,[1, 4]);
@@ -108,11 +109,12 @@ end
 function [a_inverse] = internal_energy_calculation(points, alpha, beta, gamma)
     a = zeros(points, points);
     a_row = zeros(1, points);
-    a_row(points-1) = beta;
-    a_row(points) = -alpha - 4 * beta;
     a_row(1) = 2 * alpha + 6 * beta;
     a_row(2) = -alpha - 4 * beta;
     a_row(3) = beta;
+    a_row(points-1) = beta;
+    a_row(points) = -alpha - 4 * beta;
+    
     
     for i = 1: points
         a(i,:) = a_row;
