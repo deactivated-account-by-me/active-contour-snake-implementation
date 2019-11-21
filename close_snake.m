@@ -1,16 +1,16 @@
 clear all;
 
 N = 500;
-alpha = 0.2;
-beta = 0.05;
-gamma = 0.2;
-w_line = 2.5;
-w_edge = 4.0;
-w_term = 3.5;
+alpha = 1;
+beta = 1;
+gamma = 1;
+w_line = 1;
+w_edge = 0;
+w_term = 1;
 sigma = 0.5;
 
 % load image
-I = imread('circle.jpg');
+I = imread('special_guassians.gif');
 if (ndims(I) == 3)
     I = rgb2gray(I);
 end
