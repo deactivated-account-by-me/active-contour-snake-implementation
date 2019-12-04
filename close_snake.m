@@ -1,16 +1,16 @@
 clear all;
 
 N = 500;
-alpha = 1;
-beta = 1;
-gamma = 1;
-w_line = 1;
-w_edge = 0;
-w_term = 1;
+alpha = 0.2;
+beta = 0.05;
+gamma = 0.2;
+w_line = 2.5;
+w_edge = 4;
+w_term = 3.5;
 sigma = 0.5;
-
+k = 1.25;
 % load image
-I = imread('special_guassians.gif');
+I = imread('circle.jpg');
 if (ndims(I) == 3)
     I = rgb2gray(I);
 end
@@ -31,8 +31,22 @@ fx = conv2(external_energy, sobel_x, 'same');
 fy = conv2(external_energy, sobel_y, 'same');
 
 steps = floor(N/30);
+set(gcf,'WindowButtonDownFcn',{@ButttonDownFcn}, 'WindowButtonUpFcn',{@ButttonUpFcn});
 
 for i = 1:N
+    global click;
+    global click_x;
+    global click_y;
+    if (click == 1)
+        distance_measurement_vector = euclidean_distance([x y], [click_x click_y]);
+        close_point = min(distance_measurement_vector);
+        index = find(distance_measurement_vector == close_point);
+        force_x = click_x - x(index);
+        force_y = click_y - y(index);
+        x(index) = k * force_x + x(index);
+        y(index) = k * force_y + y(index);
+        click = 0;
+    end
     [x, y] = iteration(a_inverse, x, y, external_energy, gamma, fx, fy);
     imshow(I);
     hold on;
@@ -40,7 +54,7 @@ for i = 1:N
     if(mod(i, steps) == 0)
         fprintf('%d/%d interations\n', i, N);
     end
-    pause(0.0001);
+    pause(0.1);
 end
 
 if(mod(i, steps) == 0)
@@ -73,6 +87,24 @@ function [x, y] = initialize_snake(I)
     x = x_new;
     y = y_new;
     hold on;
+end
+
+function ButttonDownFcn(src,event)
+    set(gcf,'WindowButtonMotionFcn',{@ButtonMoveFcn});
+end
+
+function ButttonUpFcn(src,event)
+    set(gcf,'WindowButtonMotionFcn',{});
+end
+
+function ButtonMoveFcn(src, event)
+    global click;
+    global click_x;
+    global click_y;
+    pt = get(gca,'CurrentPoint'); 
+    click_x = pt(1,1);
+    click_y = pt(1,2);
+    click = 1;
 end
 
 function [E_external] = external_energy_calculation(I, w_line, w_edge, w_term)
@@ -134,5 +166,14 @@ function [new_x, new_y]= iteration(a_inverse, x, y, external_energy, gamma, fx, 
     new_y(new_y > max_y) = max_y;
     new_x(new_x < 1) = 1;
     new_x(new_x > max_x) = max_x;
+end
+
+function distance_array = euclidean_distance(vector_1, vector_2)
+    d = abs(vector_1 - vector_2);
+    distance_array = [];
+    for k1 = 1:length(d)
+        distance = norm(d(k1));
+        distance_array = [distance_array, distance];
+    end
 end
 

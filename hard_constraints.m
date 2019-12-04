@@ -3,7 +3,7 @@ clear all
 N = 1000;
 alpha = 0.002;
 beta = 0.2;
-gamma = 0.1;
+gamma = 1;
 w_line = 1;
 w_edge = 0.1;
 w_term = 0.1;
@@ -52,7 +52,12 @@ for i=1:N
         force_y = click_y - y(index_new_point);
         x(index_new_point) = k * force_x + x(index_new_point);
         y(index_new_point) = k * force_y + y(index_new_point);
-        [x, y] = iteration(a_inverse, x, y, external_energy, gamma, fx, fy, kappa);
+        
+        a_inverse = internal_energy_update(a_inverse, index_new_point);
+
+        
+        [x, y] = iteration_click(a_inverse, x, y, external_energy, gamma, fx, fy, kappa, index_new_point);
+        
          %Displaying the snake in its new position
         imshow(I,[]); 
         hold on;
@@ -64,6 +69,7 @@ for i=1:N
             fprintf('%d/%d interations\n', i, N);
         end
         pause(0.1);    
+        click = 0;
     else
         [x, y] = iteration(a_inverse, x, y, external_energy, gamma, fx, fy, kappa);
          %Displaying the snake in its new position
@@ -156,6 +162,14 @@ function [E_external] = external_energy_calculation(I, w_line, w_edge, w_term)
     
 end
 
+function Ainv = internal_energy_update(A_matrix, index_new_point)
+    for i = 1: size(A_matrix, 2)
+        A_matrix(index_new_point, i) = 0;
+    end
+    A_matrix(index_new_point, index_new_point) = 1;
+    Ainv = A_matrix;
+end
+
 function Ainv = internal_energy_calculation(points,alpha ,beta, gamma)
 
     a = zeros(points, points);
@@ -190,67 +204,61 @@ function Ainv = internal_energy_calculation(points,alpha ,beta, gamma)
     a(1, points) = 0;
     a(2, points-1) = 0;
     a(2, points) = 0;
+    
+    
 
     Ainv=inv(a + gamma.* eye(points));
 end
 
-function [new_x, new_y]= iteration(a_inverse, x, y, external_energy, gamma, fx, fy, kappa)
-    global a_x
-    global a_y
-    global fix_point
-    global first_click
-    global index_new_point
-    global click_x
-    global click_y
+function [new_x, new_y]= iteration_click(a_inverse, x, y, external_energy, gamma, fx, fy, kappa, index_new_point)
+    global click_x click_y
     global click
-    if(first_click==1)
-        new_x = a_inverse * (gamma * x - kappa*interp2(fx, x, y));
-        new_y = a_inverse * (gamma * y - kappa*interp2(fy, x, y));
     
-   
-        max_x = max(x);
-        max_y = max(y);
-        new_y(new_y < 1) = 1;
-        new_y(new_y > max_y) = max_y;
-        new_x(new_x < 1) = 1;
-        new_x(new_x > max_x) = max_x;
-    
-        a_x = new_x;
-        a_y = new_y;
-        
-        a_x(index_new_point) = click_x;
-        a_y(index_new_point) = click_y;
-        single_fix_point = [a_x(index_new_point); a_y(index_new_point); index_new_point];
-        fix_point = [fix_point single_fix_point];
-   
-    
-        for k = 1:size(fix_point,2)
-            i = fix_point(3, k);
-            t_x = fix_point(1, k);
-            t_y = fix_point(2, k);
-            new_x(i) = t_x;
-            new_y(i) = t_y;
-        end
-    else
-        new_x = a_inverse * (gamma * x - kappa*interp2(fx, x, y));
-        new_y = a_inverse * (gamma * y - kappa*interp2(fy, x, y));
-    
-   
-        max_x = max(x);
-        max_y = max(y);
-        new_y(new_y < 1) = 1;
-        new_y(new_y > max_y) = max_y;
-        new_x(new_x < 1) = 1;
-        new_x(new_x > max_x) = max_x;
-    
-    end
+    f_x = kappa*interp2(fx, x, y);
+    f_y = kappa*interp2(fy, x, y);
     
     
-   click = 0;
     
+    F_x = gamma * x - f_x;
+    F_y = gamma * y - f_y;
+    
+    
+    F_x(index_new_point) = x(index_new_point);
+    F_y(index_new_point) = y(index_new_point);
 
-
+    new_x = a_inverse * F_x;
+    % new_x(index_new_point) = x(index_new_point);
+    new_y = a_inverse * F_y;
+    % new_y(index_new_point) = y(index_new_point);
+    
+    
+    
+    max_x = max(x);
+    max_y = max(y);
+    new_y(new_y < 1) = 1;
+    new_y(new_y > max_y) = max_y;
+    new_x(new_x < 1) = 1;
+    new_x(new_x > max_x) = max_x;
+    %click = 0;
 end
+
+function [new_x, new_y]= iteration(a_inverse, x, y, external_energy, gamma, fx, fy, kappa)
+
+    
+    F_x = gamma * x - kappa*interp2(fx, x, y);
+    F_y = gamma * y - kappa*interp2(fy, x, y);
+    
+    new_x = a_inverse * F_x;
+    new_y = a_inverse * F_y;
+    
+    max_x = max(x);
+    max_y = max(y);
+    new_y(new_y < 1) = 1;
+    new_y(new_y > max_y) = max_y;
+    new_x(new_x < 1) = 1;
+    new_x(new_x > max_x) = max_x;
+end
+
 
 function distance_array = euclidean_distance(vector_1, vector_2)
     d = abs(vector_1 - vector_2);
